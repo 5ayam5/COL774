@@ -43,7 +43,7 @@ def gradient_descent(X: np.ndarray, Y: np.ndarray, eta: float, epsilon: float,
     eta, epsilon = abs(eta), abs(epsilon)
     X = np.insert(X, 0, np.ones(X.shape[0]), axis=1)
     Theta = np.array([[0.], [0.]])
-    j_prev, j = 2 * epsilon, 0
+    j_prev, j = 1 + epsilon, 0
     i = 0
     while abs(j - j_prev) > epsilon:
         j_prev = j
@@ -68,7 +68,7 @@ if __name__ == '__main__':
     X = normalise(X)
 
     # code for part a
-    eta, epsilon = 1e-2, 1e-20
+    eta, epsilon = 1e-2, 1e-15
     Theta, iterations = gradient_descent(X, Y, eta, epsilon)
     with open(args.output + "/a", "w+") as out:
         out.writelines("\n".join(["learning rate\t\t= " + str(eta),

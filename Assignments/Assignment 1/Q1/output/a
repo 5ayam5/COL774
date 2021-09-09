@@ -1,0 +1,4 @@
+learning rate		= 0.01
+epsilon			= 1e-15
+[theta0, theta1]	= [0.9966197874139501, 0.00134019559816367]
+#iterations		= 1490

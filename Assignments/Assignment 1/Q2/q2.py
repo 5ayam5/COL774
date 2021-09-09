@@ -50,7 +50,7 @@ def stochastic_gradient_descent(X: np.ndarray, Y: np.ndarray,
     eta, epsilon, m = abs(eta), abs(epsilon), X.shape[0]
     X = np.insert(X, 0, np.ones(m), axis=1)
     Theta = np.zeros((X.shape[1], 1))
-    j_prev, j = 2 * epsilon, 0
+    j_prev, j = 1 + epsilon, 0
     iters, epochs = 0, 0
 
     while abs(j - j_prev) > epsilon:
@@ -90,6 +90,8 @@ if __name__ == '__main__':
         print("Extracting data...")
         X, Y = extract_data(args.output, 'X'), extract_data(args.output, 'Y')
         Y = np.reshape(Y, (X.shape[0], 1))
+        perm = np.random.permutation(X.shape[0])
+        X, Y = X[perm], Y[perm]
         if X is None or Y is None:
             print("error: could not load data")
             exit(1)
