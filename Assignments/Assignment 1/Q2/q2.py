@@ -48,6 +48,8 @@ def stochastic_gradient_descent(X: np.ndarray, Y: np.ndarray,
                                 eta: float, epsilon: float, r: int,
                                 cost=cost_function, grad=gradient):
     eta, epsilon, m = abs(eta), abs(epsilon), X.shape[0]
+    perm = np.random.permutation(X.shape[0])
+    X, Y = X[perm], Y[perm]
     X = np.insert(X, 0, np.ones(m), axis=1)
     Theta = np.zeros((X.shape[1], 1))
     j_prev, j = 1 + epsilon, 0
@@ -60,7 +62,7 @@ def stochastic_gradient_descent(X: np.ndarray, Y: np.ndarray,
             Theta -= eta * grad(Xb, Yb, Theta)
             j += cost(Xb, Yb, Theta)
             iters += 1
-        j /= m
+        j /= m // r
         epochs += 1
 
         if abs(j - j_prev) > 1e10:
@@ -90,8 +92,6 @@ if __name__ == '__main__':
         print("Extracting data...")
         X, Y = extract_data(args.output, 'X'), extract_data(args.output, 'Y')
         Y = np.reshape(Y, (X.shape[0], 1))
-        perm = np.random.permutation(X.shape[0])
-        X, Y = X[perm], Y[perm]
         if X is None or Y is None:
             print("error: could not load data")
             exit(1)
@@ -104,7 +104,8 @@ if __name__ == '__main__':
         for i, r in enumerate([1, 100, 10000, 1000000]):
             t = time()
             Theta, iters, epochs = stochastic_gradient_descent(X, Y, 0.001,
-                                                               1e-10, r)
+                                                               1e-5, r)
+            print("Learnt for batch size {} in {} seconds".format(r, time() - t))
             times.append("{},{},{},{}".format(r, time() - t, iters, epochs))
             Thetas[:, i] = Theta[:, 0]
         np.savetxt(args.output + "/b_thetas.csv", Thetas, delimiter=',')
@@ -133,7 +134,7 @@ if __name__ == '__main__':
         with open(args.output + "/c.csv", "w+") as f:
             f.write("batch size,error\n")
             for Theta, r in zip(Thetas.T, [1, 100, 10000, 1000000]):
-                Theta = np.reshape(Theta, (Theta.shape[0], 1))
+                Theta = np.reshape(Theta, (-1, 1))
                 f.write("{},{}\n".format(r, cost_function(X, Y, Theta)))
             f.write("{},{}".format("inf",
                                    cost_function(X, Y,

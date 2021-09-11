@@ -17,7 +17,12 @@ def normalise(X: np.ndarray):
 
 
 def mu(X: np.ndarray, Y: np.ndarray, f):
-    return np.sum(f(Y) * X, axis=0) / np.sum(f(Y))
+    return np.reshape(np.mean(X[np.where(f(Y)), :][0], axis=0), (-1, 1))
+
+
+def sigma(X: np.ndarray, Y: np.ndarray, mu0: np.ndarray, mu1: np.ndarray, f):
+    temp = (X - np.where(Y == 0, mu0.T, mu1.T))[np.where(f(Y)), :][0]
+    return np.matmul(temp.T, temp) / np.sum(f(Y))
 
 
 if __name__ == '__main__':
@@ -37,4 +42,17 @@ if __name__ == '__main__':
     except IOError:
         print("error: could not load data")
         exit(1)
-    print(mu(X, Y, lambda y: y), mu(X, Y, lambda y: 1 - y))
+
+    phi = sum(Y)[0] / Y.shape[0]
+    mu0 = mu(X, Y, lambda y: 1 - y)
+    mu1 = mu(X, Y, lambda y: y)
+    Sigma = sigma(X, Y, mu0, mu1, lambda y: np.ones(Y.shape))
+    Sigma0 = sigma(X, Y, mu0, mu1, lambda y: y == 0)
+    Sigma1 = sigma(X, Y, mu0, mu1, lambda y: y == 1)
+    with open(args.output + "/a", 'w+') as out:
+        out.write("\n".join(["phi    = " + str(phi),
+                             "mu_0   = " + str(mu0.T),
+                             "mu_1   = " + str(mu1.T),
+                             "sigma  = ", str(Sigma),
+                             "sigma0 = ", str(Sigma0),
+                             "sigma1 = ", str(Sigma1)]))
