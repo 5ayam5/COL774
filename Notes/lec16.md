@@ -23,7 +23,7 @@ $$P(y|x;\Theta)=\displaystyle\frac{1}{1+\displaystyle\frac{P(x|y=1;\Theta)(1-\ph
 $$P(y|x;\Theta)=\displaystyle\frac{1}{1+A}$$
 
 Now, the decision boundary is given by $\log A=0$. On simplifying this equation, we get:
-$$\log A = \log\left(\displaystyle\frac{1-\phi}{\phi}\sqrt{\displaystyle\frac{|\Sigma_1|}{|\Sigma_0|}}\right) + \frac{1}{2}\left(x^T(\Sigma_1^{-1}-\Sigma_0^{-1})x - 2(\mu_1^T\Sigma_1^{-1}-\mu_0^T\Sigma_0^{-1})x + \mu_1\Sigma_1^{-1}\mu_1 - \mu_0^T\Sigma_0^{-1}\mu_0\right)$$
+$$\log A = \log\left(\displaystyle\frac{1-\phi}{\phi}\sqrt{\displaystyle\frac{|\Sigma_1|}{|\Sigma_0|}}\right) + \frac{1}{2}\left(x^T(\Sigma_1^{-1}-\Sigma_0^{-1})x - 2(\mu_1^T\Sigma_1^{-1}-\mu_0^T\Sigma_0^{-1})x + \mu_1^T\Sigma_1^{-1}\mu_1 - \mu_0^T\Sigma_0^{-1}\mu_0\right)$$
 Therefore, the separator in general will be quadratic. If $\Sigma_0=\Sigma_1=\Sigma$, then $\log A$ simplifies to:
 $$\log A = \log\left(\displaystyle\frac{1-\phi}{\phi}\right) - (\mu_1-\mu_0)^T\Sigma^{-1}x + \frac{1}{2}\left(\mu_1^T\Sigma^{-1}\mu_1+\mu_0^T\Sigma^{-1}\mu_0\right)$$
 This form is similar to $\log A = \theta^Tx$ where the $x_0$ term is separate

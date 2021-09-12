@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import argparse
 from os import makedirs
 
@@ -9,6 +10,8 @@ parser.add_argument('input', help="folder containing logisticX.csv\
 parser.add_argument('-o', dest='output', type=str, default='./output',
                     help="output directory (if directory does not exist,\
                     it is created) [default './output/']")
+parser.add_argument('-d', dest='display', action='store_true',
+                    help="display the plot")
 args = parser.parse_args()
 
 
@@ -88,3 +91,19 @@ if __name__ == '__main__':
                              "              " + str(theta[2][0]),
                              "#iterations = " + str(iterations),
                              "epsilon     = " + str(epsilon)]))
+
+    fig, axes = plt.subplots()
+    axes.set_title('Logistic Regression')
+    axes.set_xlabel('x_1')
+    axes.set_ylabel('x_2')
+    axes.scatter(X[Y.T[0] == 0].T[0], X[Y.T[0] == 0].T[1], c='blue',
+                 marker='x', label='class 1')
+    axes.scatter(X[Y.T[0] == 1].T[0], X[Y.T[0] == 1].T[1], c='green',
+                 marker='o', label='class 2')
+    axes.plot(X.T[0], -(theta[0][0] + theta[1][0] * X.T[0]) / theta[2][0],
+              c='red', label='separator')
+    axes.legend()
+    if args.display:
+        plt.show()
+    fig.savefig(args.output + "/b.png")
+    plt.close()

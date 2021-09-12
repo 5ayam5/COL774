@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 import argparse
 from os import makedirs
 from time import time
@@ -14,6 +16,10 @@ parser.add_argument('-l', dest='learn', action='store_true',
                     help="learn using SGD for all batch sizes")
 parser.add_argument('-t', dest='test', type=str,
                     help="test set file (to test the trained models)")
+parser.add_argument('-d', dest='display', action='store_true',
+                    help="display the animation")
+parser.add_argument('-f', dest='figure', action='store_true',
+                    help="save the figure")
 args = parser.parse_args()
 
 
@@ -52,6 +58,7 @@ def stochastic_gradient_descent(X: np.ndarray, Y: np.ndarray,
     X, Y = X[perm], Y[perm]
     X = np.insert(X, 0, np.ones(m), axis=1)
     Theta = np.zeros((X.shape[1], 1))
+    Thetass = [np.copy(Theta).T[0]]
     j_prev, j = 1 + epsilon, 0
     iters, epochs = 0, 0
 
@@ -60,6 +67,7 @@ def stochastic_gradient_descent(X: np.ndarray, Y: np.ndarray,
         for b in range(m // r):
             Xb, Yb = X[b * r:(b + 1) * r], Y[b * r:(b + 1) * r]
             Theta -= eta * grad(Xb, Yb, Theta)
+            Thetass.append(np.copy(Theta).T[0])
             j += cost(Xb, Yb, Theta)
             iters += 1
         j /= m // r
@@ -69,7 +77,31 @@ def stochastic_gradient_descent(X: np.ndarray, Y: np.ndarray,
             print("Warning: Learning rate too large")
             return None, iters, epochs
 
-    return Theta, iters, epochs
+    return Theta, iters, epochs, np.array(Thetass).T
+
+
+def plot(Thetas: np.ndarray, r: int):
+    fig = plt.figure()
+    axes = fig.add_subplot(title='theta plot for batch size ' + str(r),
+                           projection='3d', xlabel='$theta_0$',
+                           ylabel='$theta_1$', zlabel='$theta_2$',
+                           xlim=[-1, 4], ylim=[-1, 2], zlim=[-1, 3])
+    learn, = axes.plot([], [], [], label='theta')
+    axes.legend()
+
+    def update(iteration):
+        learn.set_data(Thetas[:2, :iteration+1])
+        learn.set_3d_properties(Thetas[2, :iteration+1])
+        return learn,
+    _ = animation.FuncAnimation(fig, update,
+                                frames=range(Thetas.shape[1]),
+                                interval=200, blit=True)
+    if args.display:
+        plt.show()
+    if args.figure:
+        update(Thetas.shape[1])
+        fig.savefig(args.output + '/d' + str(r) + '.png')
+    plt.close()
 
 
 if __name__ == '__main__':
@@ -85,13 +117,15 @@ if __name__ == '__main__':
         print("Sampling and saving...")
         X, Y = sample_data(np.array([[3], [1], [2]]),
                            np.array([[3, 4], [-1, 4]]), 2, 1000000)
+
         np.savetxt(args.output + "/X.csv", X, delimiter=',')
         np.savetxt(args.output + "/Y.csv", Y)
         print("Sample saved!")
-    elif args.learn:
+    elif args.learn or args.display or args.figure:
         print("Extracting data...")
         X, Y = extract_data(args.output, 'X'), extract_data(args.output, 'Y')
         Y = np.reshape(Y, (X.shape[0], 1))
+
         if X is None or Y is None:
             print("error: could not load data")
             exit(1)
@@ -99,19 +133,25 @@ if __name__ == '__main__':
 
     Thetas = np.empty((3, 4))
     times = ["batch size,time taken,iterations,epochs"]
-    if args.learn:
+    if args.learn or args.display or args.figure:
         print("Starting learning...")
         for i, r in enumerate([1, 100, 10000, 1000000]):
             t = time()
-            Theta, iters, epochs = stochastic_gradient_descent(X, Y, 0.001,
-                                                               1e-5, r)
-            print("Learnt for batch size {} in {} seconds".format(r, time() - t))
+            Theta, iters, epochs, Thetass = stochastic_gradient_descent(
+                X, Y, 0.001, 1e-5, r)
+            print("Learnt for batch size {} in {} seconds".
+                  format(r, time() - t))
             times.append("{},{},{},{}".format(r, time() - t, iters, epochs))
             Thetas[:, i] = Theta[:, 0]
-        np.savetxt(args.output + "/b_thetas.csv", Thetas, delimiter=',')
-        with open(args.output + "/b_time.csv", 'w+') as f:
-            f.write("\n".join(times))
+
+            plot(Thetass, r)
+
+        if args.learn:
+            np.savetxt(args.output + "/b_thetas.csv", Thetas, delimiter=',')
+            with open(args.output + "/b_time.csv", 'w+') as f:
+                f.write("\n".join(times))
         print("Learning done!")
+
     elif args.test is not None:
         print("Extracting learning parameters")
         Thetas = extract_data(args.output, 'b_thetas')
