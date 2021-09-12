@@ -72,7 +72,7 @@ if __name__ == '__main__':
     Sigma = sigma(X, Y, mu0, mu1, lambda y: np.ones(Y.shape))
     Sigma0 = sigma(X, Y, mu0, mu1, lambda y: y == 0)
     Sigma1 = sigma(X, Y, mu0, mu1, lambda y: y == 1)
-    with open(args.output + "/a", 'w+') as out:
+    with open(args.output + "/ad", 'w+') as out:
         out.write("\n".join(["phi    = " + str(phi),
                              "mu_0   = " + str(mu0.T),
                              "mu_1   = " + str(mu1.T),

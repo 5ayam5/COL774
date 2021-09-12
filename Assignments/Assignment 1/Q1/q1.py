@@ -128,7 +128,7 @@ if __name__ == '__main__':
                                xlabel='$theta_0$', ylabel='$theta_1$',
                                zlabel='cost function')
     surf = axes_c.plot_surface(theta0, theta1, J, color='grey',
-                               label='cost mesh')
+                               label='cost mesh', alpha=0.5)
     surf._facecolors2d = surf._facecolor3d
     surf._edgecolors2d = surf._edgecolor3d
     learn, = axes_c.plot([], [], [], color='red', label='learning theta')

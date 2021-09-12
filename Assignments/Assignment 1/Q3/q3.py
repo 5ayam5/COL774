@@ -33,7 +33,7 @@ def normalise(X: np.ndarray):
 # compute the hessian matrix
 def hessian(X: np.ndarray, theta: np.ndarray):
     temp = np.exp(-np.matmul(X, theta).T)
-    return np.matmul(X.T * temp / np.square(1 + temp), X)
+    return -np.matmul(X.T * temp / np.square(1 + temp), X)
 
 
 # gradient
@@ -58,7 +58,7 @@ def newton_method(X: np.ndarray, Y: np.ndarray, epsilon: float,
     i = 0
 
     while abs(j - j_prev) > epsilon:
-        theta = theta + np.matmul(np.linalg.inv(hessian(X, theta)),
+        theta = theta - np.matmul(np.linalg.inv(hessian(X, theta)),
                                   grad(X, Y, theta))
         j_prev, j = j, cost(X, Y, theta)
         i += 1
