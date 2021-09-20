@@ -186,20 +186,20 @@ To compute the equation of the separator using \textit{Newton's method}, we need
 \begin{equation}
     \begin{split}
         \mathcal{H}(LL(\theta)) &= \frac{\partial\left(\nabla_\theta(LL(\theta))\right)}{\partial\theta}\\
-        &= \frac{\partial}{\partial\theta}\left(X^T\left(Y - \frac{1}{1+e^{-X\theta}}\right)\right)\\
+        &= \frac{\partial}{\partial\theta}{\left(X^T\left(Y - \frac{1}{1+e^{-X\theta}}\right)\right)}^T\\
         &=
         \begin{pmatrix}
-            \frac{\partial}{\partial\theta_0}\left(X^T\left(Y - \frac{1}{1+e^{-X\theta}}\right)\right)\\
-            \frac{\partial}{\partial\theta_1}\left(X^T\left(Y - \frac{1}{1+e^{-X\theta}}\right)\right)\\
+            \frac{\partial}{\partial\theta_0}{\left(X^T\left(Y - \frac{1}{1+e^{-X\theta}}\right)\right)}^T\\
+            \frac{\partial}{\partial\theta_1}{\left(X^T\left(Y - \frac{1}{1+e^{-X\theta}}\right)\right)}^T\\
             \vdots\\
-            \frac{\partial}{\partial\theta_n}\left(X^T\left(Y - \frac{1}{1+e^{-X\theta}}\right)\right)
+            \frac{\partial}{\partial\theta_n}{\left(X^T\left(Y - \frac{1}{1+e^{-X\theta}}\right)\right)}^T
         \end{pmatrix}\\
     \end{split}
 \end{equation}
 Now, computing each row separately, we get:
 \begin{equation}
     \begin{split}
-        \mathcal{H}_i &= \frac{\partial}{\partial\theta_i}\left(X^T\left(Y - \frac{1}{1+e^{-X\theta}}\right)\right)\\
+        \mathcal{H}_i &= \frac{\partial}{\partial\theta_i}{\left(X^T\left(Y - \frac{1}{1+e^{-X\theta}}\right)\right)}^T\\
         &= \frac{\partial}{\partial\theta_i}\left(\left(\frac{1}{1+e^{-X\theta}}\right)^T X\right)\\ % chktex 3
         &= \frac{\partial(X\theta)^T}{\partial\theta_i}\frac{\partial\left(\frac{1}{1+e^{-X\theta}}\right)^T}{\partial(X\theta)^T} X\\ % chktex 3
         &= X_i^T \left(\frac{e^{-(X\theta)^T}}{\left(1+e^{-(X\theta)^T}\right)^2}\right) X % chktex 3
