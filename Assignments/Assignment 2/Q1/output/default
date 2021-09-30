@@ -1,16 +1,16 @@
 train_accuracy   = 0.72086
-test_accuracy    = 0.6656428571428571
-random_accuracy  = 0.19935714285714284
+test_accuracy    = 0.6524285714285715
+random_accuracy  = 0.19414285714285714
 mode_accuracy    = 0.6608571428571428
-confusion_matrix (test) =
+confusion_matrix (training) =
 [[  261     0    99   484  1685]
  [   18    85    54   989  1492]
  [   35     0  1193  1663  2743]
  [  107     1     2  9008  4149]
  [  135    12    29   260 25496]]
-confusion_matrix (training) =
-[[   2    0    0   21  205]
- [   0    0    0   63  263]
- [   2    0    1  231  852]
- [   3    0    0  280 2825]
- [  14    0    0  202 9036]]
+confusion_matrix (test) =
+[[   4    1    9   39  175]
+ [   1    1    7  102  215]
+ [   3    0   17  381  685]
+ [  16    1   19  626 2446]
+ [  81   16   69  600 8486]]
