@@ -1,3 +1,4 @@
+from functools import reduce
 import numpy as np
 import cvxopt
 import libsvm.svmutil as svm
@@ -17,8 +18,10 @@ def extract_data(file: str, subset: list[int]):
 
 
 def extract_data_util(train: str, test: str, subset: list[int]):
+    print("Extracting data...")
     X_train, Y_train = extract_data(train, subset)
     X_test, Y_test = extract_data(test, subset)
+    print("Data extracted!")
     return X_train, Y_train, X_test, Y_test
 
 
@@ -78,13 +81,13 @@ def gaussian_prediction(alpha: np.ndarray, gamma: float, support_Y: np.ndarray, 
     return np.reshape(np.where(np.sum(alpha * support_Y * gaussian_prod(support_X, X, gamma), 0) + b >= 0, 1, -1), (X.shape[0], 1))
 
 
-def accuracy(X: np.ndarray, Y: np.ndarray, pred):
-    return 100 * sum(pred(X) == Y)[0] / Y.shape[0]
+def accuracy(pred_Y: np.ndarray, Y: np.ndarray):
+    return 100 * sum(pred_Y == Y)[0] / Y.shape[0]
 
 
 def accuracy_util_cvxopt(X_train: np.ndarray, Y_train: np.ndarray, X_test: np.ndarray, Y_test: np.ndarray, pred):
-    train_accuracy = accuracy(X_train, Y_train, pred)
-    test_accuracy = accuracy(X_test, Y_test, pred)
+    train_accuracy = accuracy(pred(X_train), Y_train)
+    test_accuracy = accuracy(pred(X_test), Y_test)
     return train_accuracy, test_accuracy
 
 
@@ -114,3 +117,60 @@ def accuracy_util_libsvm(X_train: np.ndarray, Y_train: np.ndarray, X_test: np.nd
     train_accuracy = svm.svm_predict(Y_train.T[0], X_train, model, '-q')[1][0]
     test_accuracy = svm.svm_predict(Y_test.T[0], X_test, model, '-q')[1][0]
     return train_accuracy, test_accuracy
+
+
+class Classifier():
+    X_sv: np.ndarray
+    Y_sv: np.ndarray
+    indices: list[int]
+    alpha: np.ndarray
+    b: float
+
+
+def kC2_classifier_cvxopt(X: np.ndarray, Y: np.ndarray, c: float, tol: float, gamma: float, k: int):
+    classes = [list(np.where(Y == i)[0]) for i in range(k)]
+    classifier = dict()
+
+    for i in range(k):
+        for j in range(i + 1, k):
+            X_ij, Y_ij = X[classes[i] + classes[j]], Y[classes[i] + classes[j]]
+            Y_ij = np.where(Y_ij == j, 1, -1)
+            c_ij = classifier[i, j] = Classifier()
+
+            c_ij.indices, c_ij.alpha, c_ij.b = svm_cvxopt(X_ij, Y_ij, c, tol, gaussian_prod, gamma)
+            c_ij.X_sv, c_ij.Y_sv = X_ij[c_ij.indices], Y_ij[c_ij.indices]
+
+            print("Classifier trained for classes {} and {}!".format(i, j))
+
+    return classifier
+
+
+def predict_k_cvxopt(classifier: dict[tuple[int, int], Classifier], X: np.ndarray, gamma: float, k: int):
+    votes = np.zeros((X.shape[0], k), np.int32)
+    winner = [dict() for _ in range(X.shape[0])]
+
+    for i in range(k):
+        for j in range(i + 1, k):
+            c_ij = classifier[i, j]
+            preds = gaussian_prediction(c_ij.alpha, gamma, c_ij.Y_sv, c_ij.X_sv, c_ij.b, X)
+            for m, (example, pred) in enumerate(zip(votes, preds)):
+                if pred == 1:
+                    example[j] += 1
+                    winner[m][i, j] = j
+                else:
+                    example[i] += 1
+                    winner[m][i, j] = i
+
+    best = map(lambda row: np.where(row == row.max())[0], votes)
+    pred = np.empty((X.shape[0], 1), np.int32)
+    for m, row in enumerate(best):
+        pred[m] = reduce(lambda i, j: winner[m][i, j], row)
+
+    return pred
+
+
+def kC2_classifier_libsvm(X: np.ndarray, Y: np.ndarray, c: float, kernel, gamma: float):
+	params = '-t {} -c {} -q'.format(kernel, c)
+	if gamma:
+		params += ' -g {}'.format(gamma)
+	return svm.svm_train(Y.T[0], X, params)
