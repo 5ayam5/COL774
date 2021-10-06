@@ -137,7 +137,8 @@ def kC2_classifier_cvxopt(X: np.ndarray, Y: np.ndarray, c: float, tol: float, ga
             Y_ij = np.where(Y_ij == j, 1, -1)
             c_ij = classifier[i, j] = Classifier()
 
-            c_ij.indices, c_ij.alpha, c_ij.b = svm_cvxopt(X_ij, Y_ij, c, tol, gaussian_prod, gamma)
+            c_ij.indices, c_ij.alpha, c_ij.b = svm_cvxopt(
+                X_ij, Y_ij, c, tol, gaussian_prod, gamma)
             c_ij.X_sv, c_ij.Y_sv = X_ij[c_ij.indices], Y_ij[c_ij.indices]
 
             print("Classifier trained for classes {} and {}!".format(i, j))
@@ -152,7 +153,8 @@ def predict_k_cvxopt(classifier: dict[tuple[int, int], Classifier], X: np.ndarra
     for i in range(k):
         for j in range(i + 1, k):
             c_ij = classifier[i, j]
-            preds = gaussian_prediction(c_ij.alpha, gamma, c_ij.Y_sv, c_ij.X_sv, c_ij.b, X)
+            preds = gaussian_prediction(
+                c_ij.alpha, gamma, c_ij.Y_sv, c_ij.X_sv, c_ij.b, X)
             for m, (example, pred) in enumerate(zip(votes, preds)):
                 if pred == 1:
                     example[j] += 1
@@ -170,7 +172,36 @@ def predict_k_cvxopt(classifier: dict[tuple[int, int], Classifier], X: np.ndarra
 
 
 def kC2_classifier_libsvm(X: np.ndarray, Y: np.ndarray, c: float, kernel, gamma: float):
-	params = '-t {} -c {} -q'.format(kernel, c)
-	if gamma:
-		params += ' -g {}'.format(gamma)
-	return svm.svm_train(Y.T[0], X, params)
+    params = '-t {} -c {} -q'.format(kernel, c)
+    if gamma:
+        params += ' -g {}'.format(gamma)
+    return svm.svm_train(Y.T[0], X, params)
+
+
+def confusion_matrix(Y: np.ndarray, pred_Y: np.ndarray, k: int):
+    confusion = np.zeros((k, k), np.int32)
+    for y, pred_y in zip(Y.T[0], pred_Y.T[0]):
+        confusion[y][pred_y] += 1
+    return confusion
+
+
+def kC2_cross_classifier(X: np.ndarray, Y: np.ndarray, c: float, kernel, gamma: float, fold: int):
+    m = Y.shape[0]
+    perm = np.random.permutation(m)
+    X, Y = X[perm], Y[perm]
+    m //= fold
+    X_test, X_train = np.split(X, [m])
+    Y_test, Y_train = np.split(Y, [m])
+
+    best_model, best_accuracy = None, 0
+    for i in range(fold):
+        model = kC2_classifier_libsvm(X_train, Y_train, c, kernel, gamma)
+        accuracy_i = accuracy(np.array(
+            [svm.svm_predict(Y_test.T[0], X_test, model, '-q')[0]], np.int32).T, Y_test)
+        if accuracy_i > best_accuracy:
+            best_accuracy, best_model = accuracy_i, model
+        if i < fold - 1:
+            X_train[i * m:(i + 1) * m], X_test = X_test, X_train[i * m:(i + 1) * m].copy()
+        print("Fold {} done!".format(i))
+
+    return best_model, best_accuracy

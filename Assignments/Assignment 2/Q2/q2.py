@@ -25,11 +25,15 @@ def get_args():
     parser.add_argument('-mc', dest='model_cvxopt', type=str,
                         help="extract model from a pickle dump for cvxopt")
     parser.add_argument('-ms', dest='model_libsvm', type=str,
-                        help="extract model from a pickle dump for libsvm")
+                        help="extract model for libsvm")
+    parser.add_argument('-mx', dest='model_cross', type=str,
+                        help="extract models for cross validation")
     parser.add_argument('-pc', dest='pred_cvxopt', type=str,
                         help="extract prediction from a pickle dump for cvxopt")
     parser.add_argument('-ps', dest='pred_libsvm', type=str,
                         help="extract prediction from a pickle dump for libsvm")
+    parser.add_argument('-px', dest='pred_cross', type=str,
+                        help="extract predictions from a pickle dump for cross validation")
     parser.add_argument('-k', dest='k', type=int, default=10,
                         help="number of classes (for multi class)")
 
@@ -124,33 +128,33 @@ def multi(args: argparse.Namespace):
         args.train, args.test, range(args.k))
 
     if args.part.find('a') != -1 or args.part.find('c') != -1:
-        if args.model_cvxopt is not None:
-            print("Unpickling model...")
-            classifier_cvxopt, train_t = pickle.load(
-                open(args.model_cvxopt, 'rb'))
-            print("Model unpickled!")
-        else:
-            print("Training model...")
-            train_t = time()
-
-            classifier_cvxopt = kC2_classifier_cvxopt(
-                X_train, Y_train, args.c, args.tol, args.gamma, args.k)
-
-            train_t = time() - train_t
-            print("Model trained!\nPickling model...")
-
-            pickle.dump((classifier_cvxopt, train_t), open(
-                args.output + '/multi_model_cvxopt', 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
-
-            print("Model pickled to {}!".format(
-                args.output + '/multi_model_cvxopt'))
-
         if args.pred_cvxopt is not None:
             print("Unpickling prediction...")
             prediction_cvxopt, pred_t = pickle.load(
                 open(args.pred_cvxopt, 'rb'))
             print("Prediction unpickled!")
         else:
+            if args.model_cvxopt is not None:
+                print("Unpickling model...")
+                classifier_cvxopt, train_t = pickle.load(
+                    open(args.model_cvxopt, 'rb'))
+                print("Model unpickled!")
+            else:
+                print("Training model...")
+                train_t = time()
+
+                classifier_cvxopt = kC2_classifier_cvxopt(
+                    X_train, Y_train, args.c, args.tol, args.gamma, args.k)
+
+                train_t = time() - train_t
+                print("Model trained!\nPickling model...")
+
+                pickle.dump((classifier_cvxopt, train_t), open(
+                    args.output + '/multi_model_cvxopt', 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
+
+                print("Model pickled to {}!".format(
+                    args.output + '/multi_model_cvxopt'))
+
             print("Making prediction...")
             pred_t = time()
 
@@ -178,36 +182,36 @@ def multi(args: argparse.Namespace):
             print("Written to {}!".format(args.output + '/multi_cvxopt'))
 
     if args.part.find('b') != -1 or args.part.find('c') != -1:
-        if args.model_libsvm is not None:
-            print("Loading model...")
-            classifier_libsvm = svm.svm_load_model(args.model_libsvm)
-            with open(args.model_libsvm + '_t') as f:
-                train_t = int(f.readline())
-            print("Model loaded!")
-        else:
-            print("Training model...")
-            train_t = time()
-
-            classifier_libsvm = kC2_classifier_libsvm(
-                X_train, Y_train, args.c, svm.RBF, args.gamma)
-
-            train_t = time() - train_t
-            print("Model trained!\nSaving model...")
-
-            svm.svm_save_model(
-                args.output + '/multi_model_libsvm', classifier_libsvm)
-            with open(args.output + '/multi_model_libsvm_t', 'w+') as f:
-                f.write(str(train_t))
-
-            print("Model saved to {}!".format(
-                args.output + '/multi_model_libsvm(_t)'))
-
         if args.pred_libsvm is not None:
             print("Unpickling prediction...")
             prediction_libsvm, pred_t = pickle.load(
                 open(args.pred_libsvm, 'rb'))
             print("Prediction unpickled!")
         else:
+            if args.model_libsvm is not None:
+                print("Loading model...")
+                classifier_libsvm = svm.svm_load_model(args.model_libsvm)
+                with open(args.model_libsvm + '_t') as f:
+                    train_t = int(f.readline())
+                print("Model loaded!")
+            else:
+                print("Training model...")
+                train_t = time()
+
+                classifier_libsvm = kC2_classifier_libsvm(
+                    X_train, Y_train, args.c, svm.RBF, args.gamma)
+
+                train_t = time() - train_t
+                print("Model trained!\nSaving model...")
+
+                svm.svm_save_model(
+                    args.output + '/multi_model_libsvm', classifier_libsvm)
+                with open(args.output + '/multi_model_libsvm_t', 'w+') as f:
+                    f.write(str(train_t))
+
+                print("Model saved to {}!".format(
+                    args.output + '/multi_model_libsvm(_t)'))
+
             print("Making prediction...")
             pred_t = time()
 
@@ -233,6 +237,52 @@ def multi(args: argparse.Namespace):
                 accuracy(prediction_libsvm, Y_test)))
 
         print("Written to {}!".format(args.output + '/multi_libsvm'))
+
+    if args.part.find('c') != -1:
+        with open(args.output + '/multi_confusion', 'w+') as f:
+            print("Computing confusion matrices and writing to file...")
+
+            f.write("CVXOPT:\n{}\n".format(
+                confusion_matrix(Y_test, prediction_cvxopt, args.k)))
+            f.write("LIBSVM:\n{}".format(confusion_matrix(
+                Y_test, prediction_libsvm, args.k)))
+
+        print("Written to {}!".format(args.output + '/multi_confusion'))
+
+    if args.part.find('d') != -1:
+        C = [1e-5, 1e-3, 1, 5, 10]
+        if args.pred_cross is not None:
+            print("Unpickling prediction...")
+            predictions = pickle.load(open(args.pred_cross, 'rb'))
+            print("Prediction unpickled!")
+        else:
+            if args.model_cross is not None:
+                print("Loading model...")
+                classifiers = []
+                for i in range(len(C)):
+                    classifiers.append(svm.svm_load_model(args.model_cross + str(i)))
+                print("Models loaded!")
+            else:
+                print("Training models...")
+
+                classifiers = []
+                validation = []
+                for c in C:
+                    print("c = {}".format(c))
+                    classifier, validation_accuracy = kC2_cross_classifier(X_train, Y_train, c, svm.RBF, args.gamma, 5)
+                    classifiers.append(classifier)
+                    validation.append(validation_accuracy)
+
+                print("Models trained!\nSaving models...")
+
+                with open(args.output + '/multi_cross_validation', 'w+') as f:
+                    for i, (c, classifier, validation_accuracy) in enumerate(zip(C, classifiers, validation)):
+                        svm.svm_save_model(
+                            args.output + '/multi_model_cross' + str(i), classifier)
+                        f.write("{} = {}\n".format(c, validation_accuracy))
+
+                print("Models saved to {}!".format(
+                    args.output + '/multi_model_cross(_c)'))
 
 
 if __name__ == "__main__":
