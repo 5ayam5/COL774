@@ -34,6 +34,8 @@ def get_args():
                         help="extract prediction from a pickle dump for libsvm")
     parser.add_argument('-px', dest='pred_cross', type=str,
                         help="extract predictions from a pickle dump for cross validation")
+    parser.add_argument('-x', dest='cross', type=int, default=3,
+                        help="perform only K-fold cross validation (1) or test accuracy (2) or both (3)")
     parser.add_argument('-k', dest='k', type=int, default=10,
                         help="number of classes (for multi class)")
 
@@ -251,38 +253,80 @@ def multi(args: argparse.Namespace):
 
     if args.part.find('d') != -1:
         C = [1e-5, 1e-3, 1, 5, 10]
-        if args.pred_cross is not None:
-            print("Unpickling prediction...")
-            predictions = pickle.load(open(args.pred_cross, 'rb'))
-            print("Prediction unpickled!")
-        else:
-            if args.model_cross is not None:
-                print("Loading model...")
-                classifiers = []
-                for i in range(len(C)):
-                    classifiers.append(svm.svm_load_model(args.model_cross + str(i)))
-                print("Models loaded!")
+        if args.cross & 1:
+            perm = np.random.permutation(Y_train.shape[0])
+            X_train, Y_train = X_train[perm], Y_train[perm]
+            print("Performing K-fold cross validation...")
+
+            validation = []
+            for c in C:
+                print("c = {}".format(c))
+                validation_accuracy = kC2_cross_classifier(
+                    X_train, Y_train, c, svm.RBF, args.gamma, 5)
+                validation.append(validation_accuracy)
+
+            print("Cross validation done!\nSaving validation accuracy...")
+
+            with open(args.output + '/multi_cross_validation', 'w+') as f:
+                for c, validation_accuracy in zip(C, validation):
+                    f.write("{} = {}\n".format(c, validation_accuracy))
+
+            print("Validation accuracies written to {}!".format(
+                args.output + '/multi_cross_validation'))
+
+        if args.cross & 3:
+            if args.pred_cross is not None:
+                print("Unpickling predictions...")
+                predictions = pickle.load(open(args.pred_cross, 'rb'))
+                print("Predictions unpickled!")
             else:
-                print("Training models...")
+                if args.model_cross is not None:
+                    print("Loading models...")
+                    classifiers = []
+                    for i in range(len(C)):
+                        classifiers.append(svm.svm_load_model(
+                            args.model_cross + str(i)))
+                    print("Models loaded!")
+                else:
+                    print("Training models...")
 
-                classifiers = []
-                validation = []
-                for c in C:
-                    print("c = {}".format(c))
-                    classifier, validation_accuracy = kC2_cross_classifier(X_train, Y_train, c, svm.RBF, args.gamma, 5)
-                    classifiers.append(classifier)
-                    validation.append(validation_accuracy)
+                    classifiers = []
+                    for c in C:
+                        print("Running for c = {}...".format(c))
+                        classifiers.append(kC2_classifier_libsvm(
+                            X_train, Y_train, c, svm.RBF, args.gamma))
 
-                print("Models trained!\nSaving models...")
+                    print("Models trained!\nSaving model...")
 
-                with open(args.output + '/multi_cross_validation', 'w+') as f:
-                    for i, (c, classifier, validation_accuracy) in enumerate(zip(C, classifiers, validation)):
+                    for i, classifier in enumerate(classifiers):
                         svm.svm_save_model(
                             args.output + '/multi_model_cross' + str(i), classifier)
-                        f.write("{} = {}\n".format(c, validation_accuracy))
 
-                print("Models saved to {}!".format(
-                    args.output + '/multi_model_cross(_c)'))
+                    print("Models saved to {}!".format(
+                        args.output + '/multi_model_cross(i)'))
+
+                print("Making predictions...")
+
+                predictions = []
+                for classifier in classifiers:
+                    predictions.append(np.array(
+                        [svm.svm_predict(Y_test.T[0], X_test, classifier, '-q')[0]], np.int32).T)
+
+                print("Predictions made!\nPickling model...")
+
+                pickle.dump(predictions, open(
+                    args.output + '/multi_pred_cross', 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
+
+                print("Model pickled to {}!".format(
+                    args.output + '/multi_pred_cross'))
+
+            with open(args.output + '/multi_cross', 'w+') as f:
+                print("Computing accuracies and writing to file...")
+
+                for c, prediction in zip(C, predictions):
+                    f.write("{}: {}\n".format(c, accuracy(prediction, Y_test)))
+                
+                print("Written to {}!".format(args.output + '/multi_cross'))
 
 
 if __name__ == "__main__":

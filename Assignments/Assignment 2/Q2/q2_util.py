@@ -187,21 +187,17 @@ def confusion_matrix(Y: np.ndarray, pred_Y: np.ndarray, k: int):
 
 def kC2_cross_classifier(X: np.ndarray, Y: np.ndarray, c: float, kernel, gamma: float, fold: int):
     m = Y.shape[0]
-    perm = np.random.permutation(m)
-    X, Y = X[perm], Y[perm]
     m //= fold
     X_test, X_train = np.split(X, [m])
     Y_test, Y_train = np.split(Y, [m])
 
-    best_model, best_accuracy = None, 0
+    cross_accuracy = 0
     for i in range(fold):
         model = kC2_classifier_libsvm(X_train, Y_train, c, kernel, gamma)
-        accuracy_i = accuracy(np.array(
+        cross_accuracy += accuracy(np.array(
             [svm.svm_predict(Y_test.T[0], X_test, model, '-q')[0]], np.int32).T, Y_test)
-        if accuracy_i > best_accuracy:
-            best_accuracy, best_model = accuracy_i, model
         if i < fold - 1:
             X_train[i * m:(i + 1) * m], X_test = X_test, X_train[i * m:(i + 1) * m].copy()
         print("Fold {} done!".format(i))
 
-    return best_model, best_accuracy
+    return cross_accuracy / fold
