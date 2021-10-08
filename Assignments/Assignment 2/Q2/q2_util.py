@@ -185,6 +185,14 @@ def confusion_matrix(Y: np.ndarray, pred_Y: np.ndarray, k: int):
     return confusion
 
 
+def misclassified(Y: np.ndarray, pred_Y: np.ndarray):
+    ret = []
+    for i, (y, y_pred) in enumerate(zip(Y, pred_Y)):
+        if y != y_pred:
+            ret.append((i, y[0], y_pred[0]))
+    return ret
+
+
 def kC2_cross_classifier(X: np.ndarray, Y: np.ndarray, c: float, kernel, gamma: float, fold: int):
     m = Y.shape[0]
     m //= fold

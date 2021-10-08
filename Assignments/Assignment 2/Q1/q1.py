@@ -93,7 +93,7 @@ if __name__ == "__main__":
     if args.part.find('g') != -1:
         training_summary, test_summary = gen_train_test(
             args.train, args.test, str.split, 'summary')
-        training, test = gen_train_test(args.train, args.test, str.split)
+        training, test = gen_train_test(args.train, args.test, stem_split)
         training[0] = combine(
             training[0], training_summary[0], lambda x: 3 * x)
         test[0] = combine(test[0], test_summary[0], lambda x: 3 * x)

@@ -246,8 +246,16 @@ def multi(args: argparse.Namespace):
 
             f.write("CVXOPT:\n{}\n".format(
                 confusion_matrix(Y_test, prediction_cvxopt, args.k)))
-            f.write("LIBSVM:\n{}".format(confusion_matrix(
+            f.write("LIBSVM:\n{}\n".format(confusion_matrix(
                 Y_test, prediction_libsvm, args.k)))
+            f.write("\nMisclassified CVXOPT:\n")
+            misclassified_cvxopt = misclassified(Y_test, prediction_cvxopt)
+            for tpl in misclassified_cvxopt:
+                f.write(str(tpl) + "\n")
+            misclassified_libsvm = misclassified(Y_test, prediction_libsvm)
+            f.write("\nMisclassified LIBSVM:\n")
+            for tpl in misclassified_libsvm:
+                f.write(str(tpl) + "\n")
 
         print("Written to {}!".format(args.output + '/multi_confusion'))
 

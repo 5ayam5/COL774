@@ -1,8 +1,10 @@
 train_accuracy   = 0.72086
 test_accuracy    = 0.6524285714285715
-macro f1-score   = 0.22283194818240615
+test f1-score   = 0.22283194818240615
 random_accuracy  = 0.20214285714285715
+random f1-score  = 0.13801833427316684
 mode_accuracy    = 0.6608571428571428
+mode f1-score    = 0.15916050232238088
 confusion_matrix (training) =
 [[  261     0    99   484  1685]
  [   18    85    54   989  1492]
