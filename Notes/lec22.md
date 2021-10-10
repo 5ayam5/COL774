@@ -35,5 +35,5 @@ There points are inside the margin
 These points are on the margin
 
 The dual problem is given as:
-$$\underset{\alpha, 0\leq\alpha_i\leq c}{\max}\left[\sum_{i=1}^m-\frac{1}{2}\sum_{i,j=1}^m{\alpha_i\alpha_jy^iy^j(x^i)^Tx^j}\right]$$
+$$\underset{\alpha, 0\leq\alpha_i\leq c}{\max}\left[\sum_{i=1}^m\alpha_i-\frac{1}{2}\sum_{i,j=1}^m{\alpha_i\alpha_jy^iy^j(x^i)^Tx^j}\right]$$
 The only difference is that $\alpha_i$ has an upper bound. To read about these *box constraints*, read the notes :) (won't be discussed).

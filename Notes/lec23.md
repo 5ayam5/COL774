@@ -37,7 +37,7 @@ $$K(x, z) = \phi^T(x)\cdot\phi(z)$$
 
 1. We can use $K(x^i, x^j)$ in the SVM dual problem and thus we can incorporate the transformation matrix easily
 1. To find the separator, we can now represent it as:
-$$\sum_{i=1}^m(\alpha_iy^i)\cdot K(x^i, x) - b$$ ($b$ can also be computed in terms of $K$)
+$$\sum_{i=1}^m(\alpha_iy^i)\cdot K(x^i, x) + b$$ ($b$ can also be computed in terms of $K$)
 1. Effectively we only store $\alpha_i$ for the support vectors
 
 ## Types of Kernels
@@ -53,4 +53,4 @@ Now, if $\exists\ \phi:\mathbb{R}^n\to\mathbb{R}^N$ such that $\phi^T(x^i)\cdot\
 1. $K^M$ is symmetric
 1. $K^M$ is positive semi-definite
 
-Mercer's theorem states that the above and its converse both are true. Therefore, we can compute $K^M$ and then show that there exists a feature transformation.
+Mercer's theorem states that the converse of the above is true. Therefore, we can compute $K^M$ and then show that there exists a feature transformation.
