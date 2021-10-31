@@ -9,7 +9,6 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 
-# function to parse question part, data location
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-question', type=str,
