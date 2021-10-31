@@ -1,8 +1,10 @@
-import numpy as np
-from sklearn.preprocessing import OneHotEncoder
-import argparse
 from os import makedirs
 from time import time
+import argparse
+import numpy as np
+from sklearn.preprocessing import OneHotEncoder
+import pandas as pd
+from matplotlib import pyplot as plt
 
 
 # function to parse question part, data location
@@ -52,7 +54,7 @@ def relu_derivative(z):
 
 class NeuralNetwork:
     def __init__(self, X, Y, layers, activation, activation_derivative,
-                 learning_rate=1, epochs=1000, batch_size=100, verbose=False):
+                 learning_rate=5, epochs=1000, batch_size=100, adaptive=False, verbose=False):
         self.X = X
         self.Y = Y
         self.layers = [X.shape[1]] + layers + [Y.shape[1]]
@@ -63,6 +65,7 @@ class NeuralNetwork:
         self.learning_rate = learning_rate
         self.epochs = epochs
         self.batch_size = batch_size
+        self.adaptive = adaptive
         self.verbose = verbose
         self.init_weights_biases()
 
@@ -87,11 +90,14 @@ class NeuralNetwork:
                 np.dot(self.delta[-1], self.weights[i]) * self.activation_derivative(self.a[i]))
         self.delta.reverse()
 
-    def update_weights_biases(self):
+    def update_weights_biases(self, i):
+        rate = self.learning_rate
+        if self.adaptive:
+            rate = self.learning_rate / i ** 0.5
         for i in range(len(self.layers) - 1):
-            self.weights[i] += self.learning_rate * \
+            self.weights[i] += rate * \
                 np.dot(self.delta[i].T, self.a[i]) / self.batch_size
-            self.biases[i] += self.learning_rate * \
+            self.biases[i] += rate * \
                 np.sum(self.delta[i], axis=0,
                        keepdims=True).T / self.batch_size
 
@@ -100,7 +106,7 @@ class NeuralNetwork:
             for j in range(0, len(self.X), self.batch_size):
                 self.forward_propagation(self.X[j:j + self.batch_size])
                 self.back_propagation(self.Y[j:j + self.batch_size])
-                self.update_weights_biases()
+                self.update_weights_biases(i + 1)
             if self.verbose:
                 print(f'Epoch: {i}, Cost: {self.cost()}')
                 if i % 100 == 0:
@@ -114,6 +120,40 @@ class NeuralNetwork:
 
     def accuracy(self, X, Y):
         return np.sum(self.predict(X) == np.argmax(Y, axis=1)) / len(Y)
+
+    def confusion_matrix(self, X, Y):
+        Y_pred = self.predict(X)
+        Y = np.argmax(Y, axis=1)
+        k = self.Y.shape[1]
+        confusion = np.zeros((k, k), dtype=int)
+        for y, y_pred in zip(Y, Y_pred):
+            confusion[y, y_pred] += 1
+        return confusion
+
+
+def util_nn(part: str, params, activation, activation_derivative, adaptive: bool = False):
+    with open(f'{args.output}/{part}', 'w+') as f:
+        f.write('units,train_accuracy,test_accuracy,time\n')
+        for num_units in params:
+            nn = NeuralNetwork(X_train, Y_train, num_units,
+                               activation, activation_derivative, adaptive=adaptive)
+            t = time()
+            nn.train()
+            t = time() - t
+            f.write(
+                f'{num_units[0]},{nn.accuracy(X_train, Y_train)},{nn.accuracy(X_test, Y_test)},{t}\n')
+
+            with open(f'{args.output}/{part}_{num_units[0]}_confusion', 'w+') as g:
+                g.write(str(nn.confusion_matrix(X_test, Y_test)))
+
+    if part[0] != 'e':
+        df = pd.read_csv(f'{args.output}/{part}')
+        df.plot(x='units', y=['train_accuracy',
+                'test_accuracy'], title='Accuracy')
+        plt.savefig(f'{args.output}/{part}_accuracy.png')
+        plt.clf()
+        df.plot(x='units', y='time', title='Time')
+        plt.savefig(f'{args.output}/{part}_time.png')
 
 
 if __name__ == "__main__":
@@ -135,12 +175,14 @@ if __name__ == "__main__":
         Y_train = np.load(f'{args.output}/Y_train.npy')
 
     if args.question.find('c') != -1:
-        params = [5, 10, 15, 20, 25]
-        with open(f'{args.output}/c', 'w+') as f:
-            f.write('units,train_accuracy,test_accuracy,time\n')
-            for num_units in params:
-                nn = NeuralNetwork(X_train, Y_train, [num_units], sigmoid, sigmoid_derivative)
-                t = time()
-                nn.train()
-                t = time() - t
-                f.write(f'{num_units},{nn.accuracy(X_train, Y_train)},{nn.accuracy(X_test, Y_test)},{t}\n')
+        util_nn('c', [[5], [10], [15], [20], [25]],
+                sigmoid, sigmoid_derivative)
+
+    if args.question.find('d') != -1:
+        util_nn('d', [[5], [10], [15], [20], [25]],
+                sigmoid, sigmoid_derivative, adaptive=True)
+
+    if args.question.find('e') != -1:
+        util_nn('e_relu', [[100, 100]], relu, relu_derivative, adaptive=True)
+        util_nn('e_sigmoid', [[100, 100]], sigmoid,
+                sigmoid_derivative, adaptive=True)
