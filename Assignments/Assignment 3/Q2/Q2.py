@@ -56,7 +56,7 @@ def relu_derivative(z):
 
 class NeuralNetwork:
     def __init__(self, X, Y, layers, activation, activation_derivative,
-                 learning_rate=0.1, epsilon=1e-6, batch_size=100, max_epochs=1000, adaptive=False, verbose=False):
+                 learning_rate=0.1, epsilon=1e-8, batch_size=100, max_epochs=1000, adaptive=False, verbose=False):
         permutation = np.random.permutation(X.shape[0])
         self.X = X[permutation]
         self.Y = Y[permutation]
@@ -78,8 +78,9 @@ class NeuralNetwork:
     def init_weights_biases(self):
         for i in range(1, len(self.layers)):
             self.weights.append(np.random.randn(
-                self.layers[i], self.layers[i - 1]))
-            self.biases.append(np.random.randn(self.layers[i], 1))
+                self.layers[i], self.layers[i - 1]) * (2 / self.layers[i - 1]) ** 0.5)
+            self.biases.append(np.random.randn(
+                self.layers[i], 1) * (2 / self.layers[i - 1]) ** 0.5)
 
     def forward_propagation(self, X):
         self.a = [X]
@@ -151,8 +152,8 @@ def util_nn(part: str, params, activation, activation_derivative, adaptive: bool
     with open(f'{args.output}/{part}', 'w+') as f:
         f.write('units,train_accuracy,test_accuracy,time\n')
         for num_units in params:
-            nn = NeuralNetwork(X_train, Y_train, num_units,
-                               activation, activation_derivative, adaptive=adaptive, verbose=True)
+            nn = NeuralNetwork(X_train, Y_train, num_units, activation,
+                               activation_derivative, adaptive=adaptive, verbose=True)
             t = time()
             nn.train()
             t = time() - t
