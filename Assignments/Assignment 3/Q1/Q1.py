@@ -10,6 +10,12 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-question', type=str,
                         default='cd', help='Part number')
+    parser.add_argument('-train_data', type=str,
+                        default='data/poker-hand-training.data', help='Training data')
+    parser.add_argument('-test_data', type=str,
+                        default='data/poker-hand-testing.data', help='Test data')
+    parser.add_argument('-validation_data', type=str,
+                        default='data/poker-hand-validation.data', help='Validation data')
     parser.add_argument('-best', type=str, help='Best params')
     parser.add_argument('-output', type=str,
                         default='./output', help='Output directory')
@@ -74,7 +80,7 @@ if __name__ == '__main__':
     X_valid = one_hot_encoder(X_valid, mapping)
 
     if args.question.find('c') != -1 or (args.question.find('d') != -1 and not args.best):
-        n_estimators = [50, 100, 150, 200, 250, 300, 350, 400, 450]
+        n_estimators = [50, 150, 250, 350, 450]
         max_features = [0.1, 0.3, 0.5, 0.7, 0.9]
         min_samples_split = [2, 4, 6, 8, 10]
         best_oob = 0
@@ -104,10 +110,10 @@ if __name__ == '__main__':
         # read best params from file
         with open(f'{args.output}/c_best', 'r') as f:
             f.readline()
-            best_params = list(map(int, f.readline().split(',')))
+            best_params = list(map(float, f.readline().split(',')))
 
     if args.question.find('d') != -1:
-        n_estimators = [50, 100, 150, 200, 250, 300, 350, 400, 450]
+        n_estimators = [50, 150, 250, 350, 450]
         max_features = [0.1, 0.3, 0.5, 0.7, 0.9]
         min_samples_split = [2, 4, 6, 8, 10]
 
@@ -148,21 +154,23 @@ if __name__ == '__main__':
                 f.write(f'{min_sample_split},{train_accuracy},{test_accuracy},{valid_accuracy},{oob_accuracy}\n')
 
         with open(f'{args.output}/d_n') as f:
-            df = pd.read_csv(f, header=None)
+            df = pd.read_csv(f)
             df.columns = ['n_estimators', 'train_accuracy', 'test_accuracy', 'valid_accuracy', 'oob_accuracy']
             df.plot(x='n_estimators', y=['test_accuracy', 'valid_accuracy'],
                     kind='line', title='n_estimators')
             plt.savefig(f'{args.output}/d_n.png')
+            plt.clf()
 
         with open(f'{args.output}/d_m') as f:
-            df = pd.read_csv(f, header=None)
+            df = pd.read_csv(f)
             df.columns = ['max_features', 'train_accuracy', 'test_accuracy', 'valid_accuracy', 'oob_accuracy']
             df.plot(x='max_features', y=['test_accuracy', 'valid_accuracy'],
                     kind='line', title='max_features')
             plt.savefig(f'{args.output}/d_m.png')
+            plt.clf()
 
         with open(f'{args.output}/d_s') as f:
-            df = pd.read_csv(f, header=None)
+            df = pd.read_csv(f)
             df.columns = ['min_samples_split', 'train_accuracy', 'test_accuracy', 'valid_accuracy', 'oob_accuracy']
             df.plot(x='min_samples_split', y=['test_accuracy', 'valid_accuracy'],
                     kind='line', title='min_samples_split')
