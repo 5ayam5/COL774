@@ -103,11 +103,10 @@ if __name__ == '__main__':
                         print(oob_accuracy, n_estimate, max_feature, min_sample_split)
                         f.write(f'{n_estimate},{max_feature},{min_sample_split},{train_accuracy},{test_accuracy},{valid_accuracy},{oob_accuracy}\n')
         with open(f'{args.output}/c_best', 'w+') as f:
-            f.write('n_estimators,max_features,min_samples_split,train_accuracy,test_accuracy,valid_accuracy,oob_accuracy\n')
+            f.write('n_estimators,max_features,min_samples_split,oob_accuracy\n')
             f.write(f'{best_params[0]},{best_params[1]},{best_params[2]},{best_oob}\n')
 
     if args.question.find('d') != -1 and args.best:
-        # read best params from file
         with open(f'{args.output}/c_best', 'r') as f:
             f.readline()
             best_params = list(map(float, f.readline().split(',')))
@@ -156,7 +155,7 @@ if __name__ == '__main__':
         with open(f'{args.output}/d_n') as f:
             df = pd.read_csv(f)
             df.columns = ['n_estimators', 'train_accuracy', 'test_accuracy', 'valid_accuracy', 'oob_accuracy']
-            df.plot(x='n_estimators', y=['test_accuracy', 'valid_accuracy'],
+            df.plot(x='n_estimators', y=['train_accuracy', 'test_accuracy', 'valid_accuracy'],
                     kind='line', title='n_estimators')
             plt.savefig(f'{args.output}/d_n.png')
             plt.clf()
@@ -164,7 +163,7 @@ if __name__ == '__main__':
         with open(f'{args.output}/d_m') as f:
             df = pd.read_csv(f)
             df.columns = ['max_features', 'train_accuracy', 'test_accuracy', 'valid_accuracy', 'oob_accuracy']
-            df.plot(x='max_features', y=['test_accuracy', 'valid_accuracy'],
+            df.plot(x='max_features', y=['train_accuracy', 'test_accuracy', 'valid_accuracy'],
                     kind='line', title='max_features')
             plt.savefig(f'{args.output}/d_m.png')
             plt.clf()
@@ -172,6 +171,6 @@ if __name__ == '__main__':
         with open(f'{args.output}/d_s') as f:
             df = pd.read_csv(f)
             df.columns = ['min_samples_split', 'train_accuracy', 'test_accuracy', 'valid_accuracy', 'oob_accuracy']
-            df.plot(x='min_samples_split', y=['test_accuracy', 'valid_accuracy'],
+            df.plot(x='min_samples_split', y=['train_accuracy', 'test_accuracy', 'valid_accuracy'],
                     kind='line', title='min_samples_split')
             plt.savefig(f'{args.output}/d_s.png')

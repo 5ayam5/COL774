@@ -1,2 +1,2 @@
-n_estimators,max_features,min_samples_split,train_accuracy,test_accuracy,valid_accuracy,oob_accuracy
+n_estimators,max_features,min_samples_split,oob_accuracy
 450,0.3,6,0.9090079628400797
