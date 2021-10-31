@@ -71,12 +71,12 @@ def mapped_value(feature: int, val, mapping: dict):
 
 if __name__ == '__main__':
     args = parse_args()
-    X_train, Y_train = extract_data('bank_dataset/bank_train.csv')
+    X_train, Y_train = extract_data(args.train_data)
     mapping = map_to_int(X_train)
     X_train = one_hot_encoder(X_train, mapping)
-    X_test, Y_test = extract_data('bank_dataset/bank_test.csv')
+    X_test, Y_test = extract_data(args.test_data)
     X_test = one_hot_encoder(X_test, mapping)
-    X_valid, Y_valid = extract_data('bank_dataset/bank_val.csv')
+    X_valid, Y_valid = extract_data(args.validation_data)
     X_valid = one_hot_encoder(X_valid, mapping)
 
     if args.question.find('c') != -1 or (args.question.find('d') != -1 and not args.best):
