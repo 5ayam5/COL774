@@ -3,6 +3,8 @@ from time import time
 import argparse
 import numpy as np
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.neural_network import MLPClassifier
+from sklearn.metrics import confusion_matrix
 import pandas as pd
 from matplotlib import pyplot as plt
 
@@ -54,16 +56,20 @@ def relu_derivative(z):
 
 class NeuralNetwork:
     def __init__(self, X, Y, layers, activation, activation_derivative,
-                 learning_rate=5, epochs=1000, batch_size=100, adaptive=False, verbose=False):
-        self.X = X
-        self.Y = Y
+                 learning_rate=0.1, epsilon=1e-6, batch_size=100, max_epochs=1000, adaptive=False, verbose=False):
+        permutation = np.random.permutation(X.shape[0])
+        self.X = X[permutation]
+        self.Y = Y[permutation]
         self.layers = [X.shape[1]] + layers + [Y.shape[1]]
         self.weights = []
         self.biases = []
         self.activation = activation
         self.activation_derivative = activation_derivative
         self.learning_rate = learning_rate
-        self.epochs = epochs
+        if adaptive:
+            self.learning_rate *= 10
+        self.epsilon = epsilon
+        self.max_epochs = max_epochs
         self.batch_size = batch_size
         self.adaptive = adaptive
         self.verbose = verbose
@@ -79,15 +85,18 @@ class NeuralNetwork:
         self.a = [X]
         for i in range(len(self.layers) - 1):
             z = np.matmul(self.a[i], self.weights[i].T) + self.biases[i].T
-            self.a.append(self.activation(z))
+            if i == len(self.layers) - 2:
+                self.a.append(sigmoid(z))
+            else:
+                self.a.append(self.activation(z))
         return self.a[-1]
 
     def back_propagation(self, Y):
         self.delta = [(Y - self.a[-1]) *
-                      self.activation_derivative(self.a[-1])]
+                      sigmoid_derivative(self.a[-1])]
         for i in range(len(self.layers) - 2, 0, -1):
             self.delta.append(
-                np.dot(self.delta[-1], self.weights[i]) * self.activation_derivative(self.a[i]))
+                np.matmul(self.delta[-1], self.weights[i]) * self.activation_derivative(self.a[i]))
         self.delta.reverse()
 
     def update_weights_biases(self, i):
@@ -96,27 +105,34 @@ class NeuralNetwork:
             rate = self.learning_rate / i ** 0.5
         for i in range(len(self.layers) - 1):
             self.weights[i] += rate * \
-                np.dot(self.delta[i].T, self.a[i]) / self.batch_size
+                np.matmul(self.delta[i].T, self.a[i]) / self.batch_size
             self.biases[i] += rate * \
                 np.sum(self.delta[i], axis=0,
                        keepdims=True).T / self.batch_size
 
     def train(self):
-        for i in range(self.epochs):
+        prev_cost, curr_cost, i = 1e9, 0, 0
+        while abs(curr_cost - prev_cost) > self.epsilon and i < self.max_epochs:
+            prev_cost = curr_cost
             for j in range(0, len(self.X), self.batch_size):
-                self.forward_propagation(self.X[j:j + self.batch_size])
-                self.back_propagation(self.Y[j:j + self.batch_size])
+                X = self.X[j:j + self.batch_size]
+                Y = self.Y[j:j + self.batch_size]
+                self.forward_propagation(X)
+                self.back_propagation(Y)
                 self.update_weights_biases(i + 1)
+                curr_cost += self.cost(X, Y)
+            curr_cost /= len(self.X) / self.batch_size
+            i += 1
             if self.verbose:
-                print(f'Epoch: {i}, Cost: {self.cost()}')
+                print(f'Epoch: {i}, Cost: {curr_cost}')
                 if i % 100 == 0:
                     print(f'Accuracy: {self.accuracy(self.X, self.Y)}')
 
     def predict(self, X):
         return np.argmax(self.forward_propagation(X), axis=1)
 
-    def cost(self):
-        return np.sum(np.square(self.Y - self.forward_propagation(self.X))) / (2 * self.batch_size)
+    def cost(self, X, Y):
+        return np.sum(np.square(Y - self.forward_propagation(X))) / (2 * self.batch_size)
 
     def accuracy(self, X, Y):
         return np.sum(self.predict(X) == np.argmax(Y, axis=1)) / len(Y)
@@ -136,13 +152,12 @@ def util_nn(part: str, params, activation, activation_derivative, adaptive: bool
         f.write('units,train_accuracy,test_accuracy,time\n')
         for num_units in params:
             nn = NeuralNetwork(X_train, Y_train, num_units,
-                               activation, activation_derivative, adaptive=adaptive)
+                               activation, activation_derivative, adaptive=adaptive, verbose=True)
             t = time()
             nn.train()
             t = time() - t
             f.write(
                 f'{num_units[0]},{nn.accuracy(X_train, Y_train)},{nn.accuracy(X_test, Y_test)},{t}\n')
-
             with open(f'{args.output}/{part}_{num_units[0]}_confusion', 'w+') as g:
                 g.write(str(nn.confusion_matrix(X_test, Y_test)))
 
@@ -154,6 +169,34 @@ def util_nn(part: str, params, activation, activation_derivative, adaptive: bool
         plt.clf()
         df.plot(x='units', y='time', title='Time')
         plt.savefig(f'{args.output}/{part}_time.png')
+
+
+def train_MLP(layers, architecture):
+    nn = MLPClassifier(layers, architecture, solver='sgd',
+                       learning_rate_init=0.1, max_iter=1000)
+    nn.fit(X_train, Y_train)
+    return nn
+
+
+def util_MLP():
+    with open(f'{args.output}/MLP', 'w+') as f:
+        f.write('architecture,train_accuracy,test_accuracy,time\n')
+        t = time()
+        nn = train_MLP([100, 100], 'relu')
+        t = time() - t
+        f.write(
+            f'relu,{nn.score(X_train, Y_train)},{nn.score(X_test, Y_test)},{t}\n')
+        f.write(
+            f'{confusion_matrix(np.argmax(Y_test, axis=1), np.argmax(nn.predict(X_test), axis=1))}\n')
+        t = time()
+        nn = train_MLP([100, 100], 'logistic')
+        t = time() - t
+        f.write(
+            f'sigmoid,{nn.score(X_train, Y_train)},{nn.score(X_test, Y_test)},{t}\n')
+        f.write(
+            f'{confusion_matrix(np.argmax(Y_test, axis=1), np.argmax(nn.predict(X_test), axis=1))}\n')
+
+    return None
 
 
 if __name__ == "__main__":
@@ -186,3 +229,6 @@ if __name__ == "__main__":
         util_nn('e_relu', [[100, 100]], relu, relu_derivative, adaptive=True)
         util_nn('e_sigmoid', [[100, 100]], sigmoid,
                 sigmoid_derivative, adaptive=True)
+
+    if args.question.find('f') != -1:
+        util_MLP()
